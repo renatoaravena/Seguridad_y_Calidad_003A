@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetas de Alimentos</title>
+    <link rel="stylesheet" href="/recetas.css">
+</head>
+<body>
+    <!-- Header con navegación -->
+    <header>
+        <nav>
+            <h1>🍎 Recetas Saludables</h1>
+            <div id="navGuest" style="display:none; gap:10px;">
+                <a th:href="@{/login}" href="/login">Iniciar Sesión</a>
+                <a th:href="@{/register}" href="/register" style="background-color:#27ae60;">Registrarse</a>
+            </div>
+            <div id="navAuth" style="display:none; gap:10px; align-items:center;">
+                <button id="btnProfile" style="color:#fff; background-color:#2980b9; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">Mi perfil</button>
+                <button id="btnLogout" style="color:#fff; background-color:#e74c3c; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">Cerrar sesión</button>
+            </div>
+        </nav>
+    </header>
+
+    <pre id="tokenInfo" style="padding:0 20px; white-space:pre-wrap; word-wrap:break-word;"></pre>
+
+    <!-- Variables Globales para JS -->
+    <script>const backendUrl = '/api/recipes';</script>
+
+    <script>
+        const tokenInfo = document.getElementById('tokenInfo');
+
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+            try {
+                await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+                window.location.href = '/login';
+            } catch (e) {
+                tokenInfo.textContent = 'Error al cerrar sesión: ' + e.message;
+            }
+        });
+
+
+        document.getElementById('btnProfile').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/profile', { credentials: 'same-origin' });
+                const text = await response.text();
+                if (!response.ok) {
+                    tokenInfo.textContent = `Error ${response.status}: ${text}`;
+                    return;
+                }
+                tokenInfo.textContent = `Perfil devuelto por backend:\n${text}`;
+            } catch (e) {
+                tokenInfo.textContent = 'Error al obtener perfil: ' + e.message;
+            }
+        });
+
+        // Funciones para Recetas
+        async function loadRecipes() {
+            try {
+                const response = await fetch(backendUrl, { credentials: 'same-origin' });
+                if (response.ok) {
+                    const recipes = await response.json();
+                    renderRecipes(recipes);
+                } else {
+                    console.error('Error cargando recetas:', await response.text());
+                }
+            } catch (e) {
+                console.error('Error fetch recetas:', e);
+            }
+        }
+
+        function renderRecipes(recipes) {
+            const grid = document.getElementById('recetasGrid');
+            grid.innerHTML = '';
+
+            if (!recipes || recipes.length === 0) {
+                grid.innerHTML = '<p>No hay recetas disponibles.</p>';
+                return;
+            }
+
+            recipes.forEach(r => {
+                const card = document.createElement('article');
+                card.className = 'receta-card';
+                
+                // Construir lista de ingredientes HTML
+                const ingredientsHtml = r.ingredients 
+                    ? r.ingredients.map(i => `<li>${i}</li>`).join('') 
+                    : '';
+                
+                // Manejar imagen si existe (opcional)
+                const imageHtml = (r.photos && r.photos.length > 0) 
+                    ? `<img src="${r.photos[0]}" alt="${r.name}" style="width:100%; height:200px; object-fit:cover;">` 
+                    : '';
+
+                card.innerHTML = `
+                    ${imageHtml}
+                    <div class="receta-header">
+                        <h3>${r.name}</h3>
+                    </div>
+                    <div class="receta-body">
+                        <div class="receta-info">
+                            <span><strong>⏱️</strong> ${r.cookTimeMinutes} min</span>
+                            <span><strong>🌍</strong> ${r.countryOfOrigin}</span>
+                        </div>
+                        <div class="ingredientes">
+                            <h4>Ingredientes:</h4>
+                            <ul>${ingredientsHtml}</ul>
+                        </div>
+                        <div class="instrucciones">
+                            <h4>Preparación:</h4>
+                            <p>${r.instructions}</p>
+                        </div>
+                        <span class="dificultad ${r.difficulty ? r.difficulty.toLowerCase() : 'media'}">
+                            ${r.difficulty}
+                        </span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function createRecipe(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            // Construir objeto JSON
+            const recipeData = {
+                name: formData.get('name'),
+                cuisineType: formData.get('cuisineType'),
+                countryOfOrigin: formData.get('countryOfOrigin'),
+                difficulty: formData.get('difficulty'),
+                cookTimeMinutes: parseInt(formData.get('cookTimeMinutes')),
+                instructions: formData.get('instructions'),
+                // Convertir texto separado por comas a array
+                ingredients: formData.get('ingredients').split(',').map(s => s.trim()).filter(s => s),
+                photos: formData.get('photos').split(',').map(s => s.trim()).filter(s => s)
+            };
+
+            try {
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(recipeData)
+                });
+
+                if (response.ok) {
+                    alert('Receta creada exitosamente');
+                    form.reset();
+                    loadRecipes(); // Recargar la lista
+                } else if (response.status === 401) {
+                    alert('Sesión expirada. Por favor inicia sesión nuevamente.');
+                    window.location.href = '/login';
+                } else {
+                    alert('Error al crear receta: ' + await response.text());
+                }
+            } catch (e) {
+                alert('Error de conexión: ' + e.message);
+            }
+        }
+
+        // Detectar sesión al cargar la página y configurar la vista según el estado
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/session', { credentials: 'same-origin' });
+                if (res.ok) {
+                    document.getElementById('navAuth').style.display = 'flex';
+                    document.getElementById('sectionCreateRecipe').style.display = '';
+                    loadRecipes();
+                } else {
+                    document.getElementById('navGuest').style.display = 'flex';
+                    document.getElementById('recetasGrid').innerHTML =
+                        '<p style="grid-column:1/-1;text-align:center;padding:40px;font-size:18px;">'
+                        + '🔒 <a href="/login">Inicia sesión</a> o <a href="/register">regístrate</a> para explorar nuestras recetas.</p>';
+                }
+            } catch (_) {
+                document.getElementById('navGuest').style.display = 'flex';
+            }
+        });
+    </script>
+
+    <!-- Banner de Frutería -->
+    <div class="banner-frutera">
+        <h2>🥬 La Frutería del Bienestar 🥕</h2>
+        <p>Descubre recetas deliciosas hechas con frutas y verduras frescas</p>
+        <p class="destacado">✓ Ingredientes 100% Naturales | ✓ Recetas Saludables | ✓ Fácil de Preparar</p>
+    </div>
+
+    <!-- Contenedor principal -->
+    <div class="container">
+        <!-- Introducción -->
+        <section class="introduccion">
+            <h2>Bienvenido a Nuestro Recetario</h2>
+            <p>
+                En nuestro recetario encontrarás una amplia variedad de recetas saludables utilizando los mejores 
+                productos de la frutería. Todas nuestras recetas están diseñadas para ser nutritivas, deliciosas 
+                y fáciles de preparar en tu cocina.
+            </p>
+        </section>
+
+        <!-- Sección de Creación de Receta (solo visible para usuarios autenticados) -->
+        <section id="sectionCreateRecipe" class="introduccion" style="background-color: #f8f9fa; display:none;">
+            <h3>✨ Crear Nueva Receta</h3>
+            <form id="formCreateRecipe" onsubmit="createRecipe(event)" style="display: grid; gap: 10px; max-width: 600px; margin-top: 15px;">
+                <input type="text" name="name" placeholder="Nombre de la receta" required style="padding: 8px;">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="text" name="cuisineType" placeholder="Tipo de cocina (Ej. Latina)" required style="padding: 8px;">
+                    <input type="text" name="countryOfOrigin" placeholder="País de origen" required style="padding: 8px;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <select name="difficulty" required style="padding: 8px;">
+                        <option value="Facil">Fácil</option>
+                        <option value="Media">Media</option>
+                        <option value="Dificil">Difícil</option>
+                    </select>
+                    <input type="number" name="cookTimeMinutes" placeholder="Tiempo (minutos)" required style="padding: 8px;">
+                </div>
+
+                <textarea name="instructions" placeholder="Instrucciones de preparación..." required style="padding: 8px; height: 80px;"></textarea>
+                
+                <input type="text" name="ingredients" placeholder="Ingredientes (separados por coma)" required style="padding: 8px;">
+                <input type="text" name="photos" placeholder="URL de foto (opcional)" style="padding: 8px;">
+
+                <button type="submit" style="padding: 10px; background-color: #27ae60; color: white; border: none; cursor: pointer; border-radius: 4px;">
+                    Guardar Receta
+                </button>
+            </form>
+        </section>
+
+        <!-- Grid de Recetas -->
+        <section class="recetas-grid" id="recetasGrid">
+            <!-- El contenido será cargado dinámicamente por JS -->
+            <p style="grid-column: 1/-1; text-align: center;">Cargando recetas...</p>
+        </section>
+
+        <!-- Sección de Beneficios -->
+        <section class="beneficios">
+            <h2>Beneficios de Comer Frutas y Verduras</h2>
+            <div class="beneficios-list">
+                <div class="beneficio-item">
+                    <h4>💪 Fortalece el Cuerpo</h4>
+                    <p>Las frutas y verduras proporcionan vitaminas y minerales esenciales para fortalecer 
+                    el sistema inmunológico y mejorar la salud general.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>🧠 Mejora la Cognición</h4>
+                    <p>Los antioxidantes presentes en las verduras de hoja verde mejoran la memoria y 
+                    la concentración.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>❤️ Cuidado del Corazón</h4>
+                    <p>Las frutas y verduras reducen el colesterol y la presión arterial, promoviendo 
+                    la salud cardiovascular.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>⚖️ Control de Peso</h4>
+                    <p>Altos en fibra y bajos en calorías, las frutas y verduras ayudan a mantener 
+                    un peso saludable.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>✨ Piel más Saludable</h4>
+                    <p>Los nutrientes naturales promueven una piel radiante y saludable desde el interior.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>🔋 Aumenta la Energía</h4>
+                    <p>Las vitaminas B y los carbohidratos naturales proporcionan energía sostenida durante el día.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 La Frutería del Bienestar - Recetas Saludables</p>
+        <p>Todos nuestros ingredientes son 100% naturales y frescos</p>
+        <p><a href="/" th:href="@{/}" style="color: #3498db; text-decoration: none;">Volver al inicio</a></p>
+    </footer>
+</body>
+</html>
