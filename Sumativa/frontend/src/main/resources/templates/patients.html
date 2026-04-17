@@ -1,0 +1,157 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lista de Pacientes</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <style>
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-edit, .btn-delete {
+            padding: 5px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-edit {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-edit:hover {
+            background-color: #0056b3;
+        }
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+<div class="page-container">
+    <h1>Pacientes registrados</h1>
+    <div class="actions">
+        <a class="btn btn-primary" th:href="@{/patients/new}">Registrar paciente</a>
+        <a class="btn btn-secondary" th:href="@{/home}">Volver a inicio</a>
+    </div>
+    <div class="table-wrapper">
+        <table class="patients-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Especie</th>
+                <th>Raza</th>
+                <th>Edad</th>
+                <th>Dueño</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="patientsTableBody">
+            <tr id="emptyRow"><td colspan="7">Cargando datos...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    async function loadPatients() {
+        console.log('-> Frontend: loadPatients called');
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            console.warn('No JWT token found, redirecting to login');
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            console.log('-> Frontend: GET /api/patients');
+            const response = await fetch('/api/patients', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            console.log('<- Frontend: GET /api/patients status=' + response.status);
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('jwtToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            const patients = await response.json();
+            console.log('<- Frontend: GET /api/patients body=', patients);
+            const tbody = document.getElementById('patientsTableBody');
+            tbody.innerHTML = '';
+
+            if (!patients.length) {
+                tbody.innerHTML = '<tr><td colspan="7">No hay pacientes registrados.</td></tr>';
+                return;
+            }
+
+            patients.forEach(patient => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${patient.id}</td><td>${patient.name}</td><td>${patient.species}</td><td>${patient.breed}</td><td>${patient.age}</td><td>${patient.owner}</td><td>
+                    <div class="action-buttons">
+                        <button class="btn-edit" onclick="editPatient(${patient.id})">Editar</button>
+                        <button class="btn-delete" onclick="deletePatient(${patient.id})">Eliminar</button>
+                    </div>
+                </td>`;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Frontend: GET /api/patients error=', error.message, error.stack);
+            document.getElementById('patientsTableBody').innerHTML = '<tr><td colspan="7">Error cargando pacientes.</td></tr>';
+        }
+    }
+
+    function editPatient(id) {
+        console.log('-> Frontend: editPatient id=' + id);
+        window.location.href = '/patients/' + id + '/edit';
+    }
+
+    async function deletePatient(id) {
+        console.log('-> Frontend: deletePatient id=' + id);
+        if (!confirm('¿Está seguro de que desea eliminar este paciente?')) {
+            return;
+        }
+
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            alert('No hay sesión activa');
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            console.log('-> Frontend: DELETE /api/patients/' + id);
+            const response = await fetch('/api/patients/' + id, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            console.log('<- Frontend: DELETE /api/patients/' + id + ' status=' + response.status);
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('jwtToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            if (response.ok) {
+                alert('Paciente eliminado correctamente');
+                loadPatients();
+            } else {
+                alert('Error al eliminar paciente');
+            }
+        } catch (error) {
+            console.error('Frontend: DELETE /api/patients/' + id + ' error=', error.message);
+            alert('Error al eliminar paciente: ' + error.message);
+        }
+    }
+
+    loadPatients();
+</script>
+</body>
+</html>

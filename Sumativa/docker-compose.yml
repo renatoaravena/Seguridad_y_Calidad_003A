@@ -1,0 +1,33 @@
+services:
+  mysql-seguridad:
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: ./backend  # Ajusta la ruta a tu proyecto backend
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql-seguridad
+        
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-seguridad:3306/mydatabase
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: password
+
+  frontend:
+    build: ./frontend  # Ajusta la ruta a tu proyecto frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+        
+    environment:
+      # Esta variable debe coincidir con la que uses en tu RestTemplate
+      BACKEND_URL: http://backend:8080

@@ -1,0 +1,140 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Editar Paciente</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body>
+<div class="page-container">
+    <h1>Editar paciente</h1>
+    <form id="patientForm" class="patient-form">
+        <div>
+            <label>ID:</label>
+            <input type="text" id="id" readonly />
+        </div>
+        <div>
+            <label>Nombre:</label>
+            <input type="text" id="name" required />
+        </div>
+        <div>
+            <label>Especie:</label>
+            <input type="text" id="species" required />
+        </div>
+        <div>
+            <label>Raza:</label>
+            <input type="text" id="breed" required />
+        </div>
+        <div>
+            <label>Edad:</label>
+            <input type="number" id="age" min="0" required />
+        </div>
+        <div>
+            <label>Dueño:</label>
+            <input type="text" id="owner" required />
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+            <a class="btn btn-secondary" href="/patients">Cancelar</a>
+        </div>
+        <div id="errorPatient" style="color: red; margin-top: 1rem;"></div>
+    </form>
+</div>
+<script>
+    const patientId = new URLSearchParams(window.location.search).get('id') || 
+                      window.location.pathname.split('/')[2];
+
+    async function loadPatient() {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            console.log('-> Frontend: GET /api/patients (to list)');
+            const response = await fetch('/api/patients', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            console.log('<- Frontend: GET /api/patients status=' + response.status);
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('jwtToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            const patients = await response.json();
+            const patient = patients.find(p => p.id == patientId);
+
+            if (!patient) {
+                document.getElementById('errorPatient').textContent = 'Paciente no encontrado.';
+                return;
+            }
+
+            document.getElementById('id').value = patient.id;
+            document.getElementById('name').value = patient.name;
+            document.getElementById('species').value = patient.species;
+            document.getElementById('breed').value = patient.breed;
+            document.getElementById('age').value = patient.age;
+            document.getElementById('owner').value = patient.owner;
+        } catch (error) {
+            console.error('Frontend: Error loading patient=', error);
+            document.getElementById('errorPatient').textContent = 'Error cargando paciente.';
+        }
+    }
+
+    document.getElementById('patientForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const token = localStorage.getItem('jwtToken');
+        if (!token) { 
+            window.location.href = '/login'; 
+            return; 
+        }
+
+        const body = {
+            id: parseInt(document.getElementById('id').value, 10),
+            name: document.getElementById('name').value,
+            species: document.getElementById('species').value,
+            breed: document.getElementById('breed').value,
+            age: parseInt(document.getElementById('age').value, 10),
+            owner: document.getElementById('owner').value
+        };
+
+        try {
+            console.log('-> Frontend: PUT /api/patients/' + patientId + ' body=', body);
+            const response = await fetch('/api/patients/' + patientId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token,
+                },
+                body: JSON.stringify(body)
+            });
+            console.log('<- Frontend: PUT /api/patients/' + patientId + ' status=' + response.status);
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('jwtToken');
+                window.location.href = '/login';
+                return;
+            }
+
+            if (!response.ok) {
+                const err = await response.text();
+                console.error('Frontend: PUT /api/patients/' + patientId + ' error response=', err);
+                document.getElementById('errorPatient').textContent = 'Error: ' + err;
+                return;
+            }
+
+            console.log('<- Frontend: PUT /api/patients/' + patientId + ' success');
+            window.location.href = '/patients';
+        } catch (err) {
+            console.error('Frontend: PUT /api/patients/' + patientId + ' error=', err);
+            document.getElementById('errorPatient').textContent = 'Error al actualizar paciente.';
+        }
+    });
+
+    loadPatient();
+</script>
+</body>
+</html>
