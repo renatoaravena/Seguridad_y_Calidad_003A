@@ -1,0 +1,32 @@
+services:
+  mysql:
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+
+
+  backend:
+    build: ./backend
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/mydatabase
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - backend  
+
+    environment:
+      BACKEND_URL: http://backend:8080    
+

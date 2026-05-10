@@ -1,0 +1,15 @@
+2026-05-05T00:35:41.840-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.InvoiceControllerTests             : Starting InvoiceControllerTests using Java 25.0.2 with PID 31464 (started by Renato in C:\Users\Renato\Desktop\RamosActuales\Seguridad\SumativaS8\Frontend)
+2026-05-05T00:35:41.843-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.InvoiceControllerTests             : No active profile set, falling back to 1 default profile: "default"
+2026-05-05T00:35:42.584-04:00  INFO 31464 --- [seguridadcalidad] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name users
+2026-05-05T00:35:42.898-04:00  INFO 31464 --- [seguridadcalidad] [main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-05-05T00:35:42.899-04:00  INFO 31464 --- [seguridadcalidad] [main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-05-05T00:35:42.900-04:00  INFO 31464 --- [seguridadcalidad] [main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-05-05T00:35:42.914-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.InvoiceControllerTests             : Started InvoiceControllerTests in 1.301 seconds (process running for 3.442)
+2026-05-05T00:35:43.105-04:00  WARN 31464 --- [seguridadcalidad] [main] c.d.s.PatientRestController              : POST /api/patients missing authentication token
+2026-05-05T00:35:43.108-04:00  WARN 31464 --- [seguridadcalidad] [main] c.d.s.PatientRestController              : GET /api/patients missing authentication token
+2026-05-05T00:35:43.113-04:00  INFO 31464 --- [seguridadcalidad] [main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.duoc.seguridadcalidad.SeguridadcalidadApplicationTests]: SeguridadcalidadApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-05-05T00:35:43.114-04:00  INFO 31464 --- [seguridadcalidad] [main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.duoc.seguridadcalidad.SeguridadcalidadApplication for test class com.duoc.seguridadcalidad.SeguridadcalidadApplicationTests
+2026-05-05T00:35:43.138-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.SeguridadcalidadApplicationTests   : Starting SeguridadcalidadApplicationTests using Java 25.0.2 with PID 31464 (started by Renato in C:\Users\Renato\Desktop\RamosActuales\Seguridad\SumativaS8\Frontend)
+2026-05-05T00:35:43.138-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.SeguridadcalidadApplicationTests   : No active profile set, falling back to 1 default profile: "default"
+2026-05-05T00:35:43.359-04:00  INFO 31464 --- [seguridadcalidad] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name users
+2026-05-05T00:35:43.401-04:00  INFO 31464 --- [seguridadcalidad] [main] c.d.s.SeguridadcalidadApplicationTests   : Started SeguridadcalidadApplicationTests in 0.282 seconds (process running for 3.929)
